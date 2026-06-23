@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "demo/basic/src/my-component.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Test component used by the vuejs-types demo app",
+          "name": "MyComponent",
+          "tagName": "my-component",
+          "customElement": true,
+          "superclass": {
+            "name": "HTMLElement"
+          },
+          "slots": [
+            {
+              "name": "",
+              "description": "Default slot content"
+            },
+            {
+              "name": "icon",
+              "description": "Optional icon slot"
+            },
+            {
+              "name": "footer",
+              "description": "Footer slot content"
+            }
+          ],
+          "cssParts": [
+            {
+              "name": "title",
+              "description": "Title element"
+            },
+            {
+              "name": "controls",
+              "description": "Controls row"
+            },
+            {
+              "name": "button",
+              "description": "Increment button"
+            },
+            {
+              "name": "content",
+              "description": "Main content wrapper"
+            },
+            {
+              "name": "footer",
+              "description": "Footer wrapper"
+            }
+          ],
+          "cssProperties": [
+            {
+              "name": "--my-component-color",
+              "description": "Title color",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "name": "--my-component-padding",
+              "description": "Host padding",
+              "type": {
+                "text": "string"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "ready",
+              "description": "Fired when the element is connected and ready.",
+              "type": {
+                "text": "Event"
+              }
+            },
+            {
+              "name": "count-change",
+              "description": "Fired when the count value changes.",
+              "type": {
+                "text": "{ count: number }"
+              }
+            },
+            {
+              "name": "value-submit",
+              "description": "Example payload event fired on button click.",
+              "type": {
+                "text": "{ value: string }"
+              }
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "title",
+              "description": "Title text.",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"Hello, World!\"",
+              "attribute": "title",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "count",
+              "description": "Current count.",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "attribute": "count",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "description": "Disables user interaction.",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "attribute": "disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "description": "Visual variant.",
+              "type": {
+                "text": "'primary' | 'neutral' | 'danger'"
+              },
+              "default": "\"neutral\"",
+              "attribute": "variant",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "user",
+              "description": "Arbitrary data passed as a JS property (not an attribute).",
+              "type": {
+                "text": "{ name: string } | null"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "items",
+              "description": "List of items passed as a JS property.",
+              "type": {
+                "text": "string[]"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "increment",
+              "description": "Increment the counter.",
+              "parameters": [
+                {
+                  "name": "by",
+                  "type": {
+                    "text": "number"
+                  },
+                  "default": "1"
+                }
+              ],
+              "return": {
+                "type": {
+                  "text": "number"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reset",
+              "description": "Reset count to 0."
+            },
+            {
+              "kind": "method",
+              "name": "focusButton",
+              "description": "Focus the internal action button."
+            },
+            {
+              "kind": "method",
+              "name": "render",
+              "description": "Render the shadow DOM."
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MyComponent",
+          "declaration": {
+            "name": "MyComponent",
+            "module": "demo/basic/src/my-component.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "my-component",
+          "declaration": {
+            "name": "MyComponent",
+            "module": "demo/basic/src/my-component.js"
+          }
+        }
+      ]
+    }
+  ]
+}

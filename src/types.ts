@@ -1,0 +1,50 @@
+import { ComponentDescriptionOptions } from "@wc-toolkit/cem-utilities";
+
+export type VuejsTypesOptions = {
+  /** Used to get a specific path for a given component */
+  componentTypePath?: (
+    name: string,
+    tag?: string,
+    modulePath?: string,
+  ) => string;
+  /** Name of the file generated */
+  fileName?: string;
+  /** Path to output directory */
+  outdir?: string;
+  /** Component names to exclude form process */
+  exclude?: string[];
+  /** Used to get global type reference for components */
+  globalTypePath?: string;
+  /** Indicates if the component classes are a default export rather than a named export */
+  defaultExport?: boolean;
+  /** Creates event types where the event's target is stringly typed to the custom element */
+  stronglyTypedEvents?: boolean;
+  /** Adds types to allow users to add undefined attributes or props to the custom elements */
+  allowUnknownProps?: boolean;
+  /** Use prop types extracted into the custom elements manifest instead of referencing the component class */
+  useCemTypes?: boolean;
+  /** Property name on the CEM member/attribute to read types from (default: "type") */
+  typesSrc?: string;
+  /** Exclude types for CSS custom properties */
+  excludeCssCustomProperties?: boolean;
+  /** Optional function to format tag names before processing. */
+  tagFormatter?: (tagName: string) => string;
+  /** Available options for configuring the way the components description is rendered */
+  componentDescriptionOptions?: ComponentDescriptionOptions;
+  /** @deprecated This feature never worked as intended and will be removed in the next major release */
+  overrideCustomEventType?: boolean;
+  /** Skips the code from running */
+  skip?: boolean;
+  /** Shows contextual logs */
+  debug?: boolean;
+  /**
+   * @deprecated use `tagFormatter` instead
+   * Adds a prefix to tag references
+   */
+  prefix?: string;
+  /**
+   * @deprecated use `tagFormatter` instead
+   * Adds a suffix to tag references
+   */
+  suffix?: string;
+};

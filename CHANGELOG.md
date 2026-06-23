@@ -1,0 +1,1 @@
+# @wc-toolkit/vuejs-types
