@@ -5,6 +5,7 @@ import {
   Component,
   getAllComponents,
   getComponentPublicProperties,
+  getCustomEventDetailTypes,
   getMemberDescription,
   toPascalCase,
 } from "@wc-toolkit/cem-utilities";
@@ -239,6 +240,33 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
       });
     });
   }
+
+  // Import event detail types referenced by CustomEvent<Detail> patterns
+  getAllComponents(manifest, options.exclude).forEach((component) => {
+    if (!component.name || !component.events) return;
+
+    const componentModule = componentModules.get(component.name);
+    if (!componentModule) return;
+
+    const detailTypes = getEventDetailImportTypes(component);
+    if (detailTypes.length === 0) return;
+
+    const importPath = options.globalTypePath
+      ? normalizeImportPath(options.globalTypePath, options)
+      : normalizeImportPath(
+          getComponentImportPath(
+            component.name,
+            component.tagName,
+            componentModule.modulePath,
+            options,
+          ),
+          options,
+        );
+
+    detailTypes.forEach((typeName) => {
+      addImport(imports, importPath, typeName);
+    });
+  });
 
   return Array.from(imports.entries())
     .map(
@@ -691,6 +719,24 @@ function getStronglyTypedEvents(component: Component): string {
   });
 
   return types.join("\n");
+}
+
+function getEventDetailImportTypes(component: Component): string[] {
+  const bare = getCustomEventDetailTypes(component);
+  const wrapped = (component.events || [])
+    .map((event) => {
+      const text = event.type?.text?.trim();
+      if (!text) return undefined;
+      const match = /^CustomEvent<(.+)>$/.exec(text);
+      return match?.[1]?.trim();
+    })
+    .filter(
+      (detail): detail is string =>
+        detail !== undefined && /^[A-Z][\w$]*$/.test(detail),
+    );
+  return [...new Set([...bare, ...wrapped])].filter(
+    (name) => name !== "CustomEvent" && name !== "Event",
+  );
 }
 
 function createOutDir(outDir: string) {

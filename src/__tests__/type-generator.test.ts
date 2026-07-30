@@ -177,6 +177,51 @@ const parsedTypeManifest: ExtendedPackage = {
   ],
 };
 
+const typedEventManifest = {
+  schemaVersion: "1.0.0",
+  readme: "",
+  modules: [
+    {
+      kind: "javascript-module",
+      path: "src/button.js",
+      declarations: [
+        {
+          kind: "class",
+          name: "Button",
+          tagName: "x-button",
+          customElement: true,
+          events: [
+            {
+              name: "my-change",
+              type: { text: "CustomEvent<MyDetail>" },
+            },
+            {
+              name: "union-event",
+              type: { text: "CustomEvent<Foo | Bar>" },
+            },
+            {
+              name: "plain-event",
+              type: { text: "CustomEvent" },
+            },
+          ],
+        },
+      ],
+      exports: [
+        {
+          kind: "js",
+          name: "Button",
+          declaration: { name: "Button", module: "src/button.js" },
+        },
+        {
+          kind: "custom-element-definition",
+          name: "x-button",
+          declaration: { name: "Button", module: "src/button.js" },
+        },
+      ],
+    },
+  ],
+} satisfies cem.Package;
+
 describe("generateVuejsTypes (Vue output)", () => {
   it("emits Vue GlobalComponents augmentation and no JSX-framework modules", () => {
     const manifestPath = path.join(
@@ -256,5 +301,64 @@ describe("generateVuejsTypes (Vue output)", () => {
     );
     expect(template).toContain('"variant"?: ButtonVariant | undefined;');
     expect(template).toContain('"size"?: ButtonSize;');
+  });
+
+  it("types and imports a CustomEvent detail for strongly typed events", () => {
+    const template = generateVuejsTypes(typedEventManifest, {
+      fileName: undefined,
+      stronglyTypedEvents: true,
+    });
+
+    // The detail type is imported alongside the element (not CustomEvent which is global)
+    expect(template).toMatch(
+      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "src\/button\.js";/,
+    );
+    expect(template).not.toContain(", CustomEvent,");
+
+    // The per-event alias is declared properly (not concatenated)
+    expect(template).toContain(
+      "export type ButtonMyChangeElementEvent = ButtonElementEvent<CustomEvent<MyDetail>>;",
+    );
+
+    // The event references the declared alias in VueEvents
+    expect(template).toContain(
+      '"my-change": ButtonMyChangeElementEvent;',
+    );
+
+    // No concatenated undeclared identifier
+    expect(template).not.toContain("ButtonElementEventButtonMyChangeElementEvent");
+  });
+
+  it("does not import a union detail type from CustomEvent", () => {
+    const template = generateVuejsTypes(typedEventManifest, {
+      fileName: undefined,
+      stronglyTypedEvents: true,
+    });
+
+    // Union types have no single importable name; nothing with | in the import
+    const importLine = template.match(/import type \{ [^}]+ \} from "src\/button\.js";/);
+    expect(importLine).not.toBeNull();
+    expect(importLine![0]).not.toContain("|");
+
+    // The union event alias should still be generated
+    expect(template).toContain("ButtonUnionEventElementEvent");
+  });
+
+  it("imports a named CustomEvent detail even without strong typing", () => {
+    const template = generateVuejsTypes(typedEventManifest, {
+      fileName: undefined,
+      stronglyTypedEvents: false,
+    });
+
+    // The detail type is still imported so it resolves (not CustomEvent which is global)
+    expect(template).toMatch(
+      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "src\/button\.js";/,
+    );
+    expect(template).not.toContain(", CustomEvent,");
+
+    // Without strong typing, the event type is the raw type
+    expect(template).toContain(
+      '"my-change": CustomEvent<MyDetail>;',
+    );
   });
 });
