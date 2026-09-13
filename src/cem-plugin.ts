@@ -20,7 +20,9 @@ export function vuejsTypesPlugin(options: VuejsTypesOptions = {}) {
 }
 
 /** Plugin for @wc-toolkit/cem-generator that generates Vue.js types from the finalized CEM. */
-export function vuejsTypesGeneratorPlugin(options: VuejsTypesOptions = {}): Plugin {
+export function vuejsTypesGeneratorPlugin(
+  options: VuejsTypesOptions = {},
+): Plugin {
   return {
     name: "@wc-toolkit/vuejs-types:cem-generator",
     afterGenerate(manifest: Package) {
