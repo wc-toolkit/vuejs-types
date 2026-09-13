@@ -19,10 +19,11 @@ Types are generated from a Custom Elements Manifest (CEM) and include documentat
 
 ## Usage
 
-Two primary ways to generate types:
+Three primary ways to generate types:
 
 1. Programmatically, from a build script
 2. As a plugin for the Custom Elements Manifest Analyzer
+3. As a plugin for `@wc-toolkit/cem-generator`
 
 ### Install
 
@@ -63,6 +64,17 @@ export default {
     }),
   ],
 };
+```
+
+### cem-generator Plugin
+
+```ts
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { vuejsTypesGeneratorPlugin } from "@wc-toolkit/vuejs-types";
+
+generateCem({
+  plugins: [vuejsTypesGeneratorPlugin({ outdir: "./dist/types" })],
+});
 ```
 
 ## Implementation / Integrating generated types
