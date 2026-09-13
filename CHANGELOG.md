@@ -1,5 +1,11 @@
 # @wc-toolkit/vuejs-types
 
+## 1.0.2
+
+### Patch Changes
+
+- a072041: Add a `cem-generator` plugin for generating Vue.js types from the finalized CEM.
+
 ## 1.0.1
 
 ### Patch Changes
