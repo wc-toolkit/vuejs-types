@@ -1,5 +1,12 @@
 # @wc-toolkit/vuejs-types
 
+## 1.0.3
+
+### Patch Changes
+
+- 2517b9f: Keep Vue type generation from mutating the source Custom Elements Manifest.
+- 2517b9f: Add a `cem-generator` plugin for generating Vue.js types from the finalized CEM.
+
 ## 1.0.2
 
 ### Patch Changes
