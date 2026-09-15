@@ -14,7 +14,7 @@ export function vuejsTypesPlugin(options: VuejsTypesOptions = {}) {
   return {
     name: "@wc-toolkit/vuejs-types",
     packageLinkPhase({ customElementsManifest }: any) {
-      generateVuejsTypes(customElementsManifest, options);
+      generateVuejsTypes(cloneManifest(customElementsManifest), options);
     },
   };
 }
@@ -26,7 +26,11 @@ export function vuejsTypesGeneratorPlugin(
   return {
     name: "@wc-toolkit/vuejs-types:cem-generator",
     afterGenerate(manifest: Package) {
-      generateVuejsTypes(manifest, options);
+      generateVuejsTypes(cloneManifest(manifest), options);
     },
   };
+}
+
+function cloneManifest(manifest: unknown): Package {
+  return structuredClone(manifest) as Package;
 }
