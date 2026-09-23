@@ -1,5 +1,11 @@
 # @wc-toolkit/vuejs-types
 
+## 1.0.4
+
+### Patch Changes
+
+- 67d4a5c: Support generating valid Vue types from CSS-only custom element declarations in a Custom Elements Manifest.
+
 ## 1.0.3
 
 ### Patch Changes
