@@ -222,6 +222,35 @@ const typedEventManifest = {
   ],
 } satisfies cem.Package;
 
+const cssOnlyManifest = {
+  schemaVersion: "1.0.0",
+  readme: "",
+  modules: [
+    {
+      kind: "css-module",
+      path: "src/my-badge.css",
+      declarations: [
+        {
+          kind: "class",
+          name: "my-badge",
+          tagName: "my-badge",
+          customElement: true,
+          superclass: { name: "HTMLUnknownElement" },
+          attributes: [
+            {
+              name: "tone",
+              type: { text: '"info" | "success"' },
+            },
+          ],
+          cssProperties: [{ name: "--my-badge-color" }],
+          slots: [{ name: "label" }],
+          events: [{ name: "badge-ready", type: { text: "Event" } }],
+        },
+      ],
+    },
+  ],
+} satisfies cem.Package;
+
 describe("generateVuejsTypes (Vue output)", () => {
   it("emits Vue GlobalComponents augmentation and no JSX-framework modules", () => {
     const manifestPath = path.join(
@@ -321,12 +350,12 @@ describe("generateVuejsTypes (Vue output)", () => {
     );
 
     // The event references the declared alias in VueEvents
-    expect(template).toContain(
-      '"my-change": ButtonMyChangeElementEvent;',
-    );
+    expect(template).toContain('"my-change": ButtonMyChangeElementEvent;');
 
     // No concatenated undeclared identifier
-    expect(template).not.toContain("ButtonElementEventButtonMyChangeElementEvent");
+    expect(template).not.toContain(
+      "ButtonElementEventButtonMyChangeElementEvent",
+    );
   });
 
   it("does not import a union detail type from CustomEvent", () => {
@@ -336,7 +365,9 @@ describe("generateVuejsTypes (Vue output)", () => {
     });
 
     // Union types have no single importable name; nothing with | in the import
-    const importLine = template.match(/import type \{ [^}]+ \} from "src\/button\.js";/);
+    const importLine = template.match(
+      /import type \{ [^}]+ \} from "src\/button\.js";/,
+    );
     expect(importLine).not.toBeNull();
     expect(importLine![0]).not.toContain("|");
 
@@ -357,8 +388,23 @@ describe("generateVuejsTypes (Vue output)", () => {
     expect(template).not.toContain(", CustomEvent,");
 
     // Without strong typing, the event type is the raw type
+    expect(template).toContain('"my-change": CustomEvent<MyDetail>;');
+  });
+
+  it("generates valid types for CSS-only declarations", () => {
+    const template = generateVuejsTypes(cssOnlyManifest, {
+      fileName: undefined,
+      stronglyTypedEvents: true,
+    });
+
+    expect(template).toContain("export type MyBadgeVueProps");
+    expect(template).toContain('"tone"?: "info" | "success";');
+    expect(template).toContain('"--my-badge-color"?: string;');
+    expect(template).toContain('export type MyBadgeVueSlots = "label";');
     expect(template).toContain(
-      '"my-change": CustomEvent<MyDetail>;',
+      '"my-badge": DefineCustomElement<HTMLUnknownElement, MyBadgeVueProps, MyBadgeVueEvents>;',
     );
+    expect(template).not.toContain("my-badgeVueProps");
+    expect(template).not.toContain('from "src/my-badge.css"');
   });
 });

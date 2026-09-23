@@ -139,7 +139,10 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
     if (
       !module.declarations ||
       !module.declarations.length ||
-      !module.declarations.some((d) => (d as cem.CustomElement).customElement)
+      !module.declarations.some((d) => {
+        const component = d as cem.CustomElement;
+        return component.customElement && !isCssOnlyComponent(component);
+      })
     ) {
       return;
     }
@@ -147,7 +150,11 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
     module.declarations?.forEach((element) => {
       const component = element as cem.CustomElement;
 
-      if (!component.customElement || !component.name) {
+      if (
+        !component.customElement ||
+        !component.name ||
+        isCssOnlyComponent(component)
+      ) {
         return;
       }
 
@@ -171,7 +178,11 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
       module.declarations?.forEach((element) => {
         const component = element as cem.CustomElement;
 
-        if (!component.customElement || !component.name) {
+        if (
+          !component.customElement ||
+          !component.name ||
+          isCssOnlyComponent(component)
+        ) {
           return;
         }
 
@@ -206,7 +217,7 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
 
   if (options.useCemTypes) {
     getAllComponents(manifest, options.exclude).forEach((component) => {
-      if (!component.name) {
+      if (!component.name || isCssOnlyComponent(component)) {
         return;
       }
 
@@ -243,7 +254,8 @@ function getImports(manifest: cem.Package, options: VuejsTypesOptions) {
 
   // Import event detail types referenced by CustomEvent<Detail> patterns
   getAllComponents(manifest, options.exclude).forEach((component) => {
-    if (!component.name || !component.events) return;
+    if (!component.name || !component.events || isCssOnlyComponent(component))
+      return;
 
     const componentModule = componentModules.get(component.name);
     if (!componentModule) return;
@@ -334,6 +346,9 @@ ${components
       return "";
     }
 
+    const componentIdentifier = getComponentIdentifier(component);
+    const cssOnly = isCssOnlyComponent(component);
+
     const cachedProps =
       getComponentProps(component)?.filter(
         (prop) => !prop.readonly && !prop.static,
@@ -353,7 +368,7 @@ ${components
             eventType,
             strongEventTypes?.find((x) => x.name === event.name)?.newType ||
               null,
-            component.name,
+            componentIdentifier,
             options.stronglyTypedEvents,
           );
 
@@ -367,7 +382,7 @@ ${components
     return `
 ${options.stronglyTypedEvents ? getStronglyTypedEvents(component) : ""}
 
-export type ${component.name}VueProps = {
+export type ${componentIdentifier}VueProps = {
 ${(() => {
   if (!cachedProps?.length) {
     return "";
@@ -376,7 +391,13 @@ ${(() => {
   return cachedProps.reduce((acc, prop) => {
     const description = getMemberDescription(prop.description, prop.deprecated);
     const typeInfo = getResolvedPropType(prop, options);
-    const type = getPropType(component.name, prop, typeInfo, options);
+    const type = getPropType(
+      componentIdentifier,
+      prop,
+      typeInfo,
+      options,
+      cssOnly,
+    );
 
     const propExists = prop.propName
       ? acc.includes(`  "${prop.propName}"?:`)
@@ -402,9 +423,11 @@ ${(() => {
 })()}
 };
 
-export type ${component.name}VueEvents = {
+export type ${componentIdentifier}VueEvents = {
 ${vueEventsTemplate}
 };
+
+${cssOnly ? getVueSlotsTemplate(component, componentIdentifier) : ""}
 `;
   })
   .join("\n")}
@@ -456,9 +479,14 @@ ${components
           .replace(/`/g, "'")
       : undefined;
 
+    const componentIdentifier = getComponentIdentifier(component);
+    const elementType = isCssOnlyComponent(component)
+      ? "HTMLUnknownElement"
+      : componentIdentifier;
+
     return componentDoc
-      ? `  /** ${componentDoc} */\n  "${tagName}": DefineCustomElement<${component.name}, ${component.name}VueProps, ${component.name}VueEvents>;`
-      : `  "${tagName}": DefineCustomElement<${component.name}, ${component.name}VueProps, ${component.name}VueEvents>;`;
+      ? `  /** ${componentDoc} */\n  "${tagName}": DefineCustomElement<${elementType}, ${componentIdentifier}VueProps, ${componentIdentifier}VueEvents>;`
+      : `  "${tagName}": DefineCustomElement<${elementType}, ${componentIdentifier}VueProps, ${componentIdentifier}VueEvents>;`;
   })
   .join("\n")}
 }
@@ -502,6 +530,16 @@ type ComponentProp = {
   attribute?: cem.Attribute;
   property?: cem.ClassField;
 };
+
+function isCssOnlyComponent(component: Pick<Component, "superclass">) {
+  return component.superclass?.name === "HTMLUnknownElement";
+}
+
+function getComponentIdentifier(component: Component) {
+  return component.name && isCssOnlyComponent(component)
+    ? toPascalCase(component.name)
+    : component.name!;
+}
 
 function addImport(
   imports: Map<string, Set<string>>,
@@ -621,7 +659,7 @@ function getTypeFromSource(
     candidate &&
     typeof candidate === "object" &&
     "text" in candidate &&
-    typeof candidate.text === "string"
+    typeof (candidate as { text?: unknown }).text === "string"
   ) {
     return candidate as cem.Type;
   }
@@ -650,8 +688,9 @@ function getPropType(
   prop: ComponentProp,
   propType: cem.Type | undefined,
   options: VuejsTypesOptions,
+  cssOnly = false,
 ) {
-  if (options.useCemTypes) {
+  if (options.useCemTypes || cssOnly) {
     return propType?.text || "unknown";
   }
 
@@ -694,7 +733,7 @@ function getStrongEventTypes(component: Component) {
         type: eventType.type.startsWith("{")
           ? `CustomEvent<${eventType.type}>`
           : eventType.type,
-        newType: `${component.name}${toPascalCase(eventType.name)}ElementEvent`,
+        newType: `${getComponentIdentifier(component)}${toPascalCase(eventType.name)}ElementEvent`,
       };
     });
 }
@@ -705,19 +744,36 @@ function getStronglyTypedEvents(component: Component): string {
   }
 
   const eventTypes = getStrongEventTypes(component);
+  const componentIdentifier = getComponentIdentifier(component);
+  const eventTarget = isCssOnlyComponent(component)
+    ? "HTMLUnknownElement"
+    : componentIdentifier;
   const types: string[] = [
     `/** \`${component.name}\` component event */
-     export type ${component.name}ElementEvent<E = Event> = TypedEvent<${component.name}, E>;`,
+     export type ${componentIdentifier}ElementEvent<E = Event> = TypedEvent<${eventTarget}, E>;`,
   ];
 
   eventTypes.forEach((eventType) => {
     types.push(
       `/** \`${eventType.name}\` event type */
-      export type ${eventType.newType} = ${component.name}ElementEvent<${eventType.type}>;`,
+      export type ${eventType.newType} = ${componentIdentifier}ElementEvent<${eventType.type}>;`,
     );
   });
 
   return types.join("\n");
+}
+
+function getVueSlotsTemplate(
+  component: Component,
+  componentIdentifier: string,
+) {
+  const slots = component.slots
+    ?.filter((slot) => slot.name !== undefined)
+    .map((slot) => JSON.stringify(slot.name));
+
+  return slots?.length
+    ? `export type ${componentIdentifier}VueSlots = ${slots.join(" | ")};`
+    : "";
 }
 
 function getEventDetailImportTypes(component: Component): string[] {
