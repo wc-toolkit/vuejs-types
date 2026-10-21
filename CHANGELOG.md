@@ -1,5 +1,11 @@
 # @wc-toolkit/vuejs-types
 
+## 1.0.5
+
+### Patch Changes
+
+- 7d1939b: Avoid mutating input manifests, resolve file-like imports relative to the output directory, deduplicate event payload types, and handle CSS-only declarations with valid element and attribute types.
+
 ## 1.0.4
 
 ### Patch Changes
