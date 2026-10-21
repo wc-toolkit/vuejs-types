@@ -389,6 +389,22 @@ describe("generateVuejsTypes (Vue output)", () => {
     );
   });
 
+  it("normalizes scoped file paths while preserving bare package specifiers", () => {
+    const manifest = structuredClone(typedEventManifest);
+    const modulePath = "@scope/components/button.js";
+    manifest.modules[0].path = modulePath;
+    manifest.modules[0].exports?.forEach((exportDeclaration) => {
+      exportDeclaration.declaration.module = modulePath;
+    });
+
+    const template = generateVuejsTypes(manifest, {
+      fileName: undefined,
+      outdir: "./types",
+    });
+
+    expect(template).toContain('from "../@scope/components/button.js"');
+  });
+
   it("does not import a union detail type from CustomEvent", () => {
     const template = generateVuejsTypes(typedEventManifest, {
       fileName: undefined,

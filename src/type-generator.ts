@@ -42,7 +42,12 @@ function ensureRelativeSpecifier(p: string) {
 }
 
 function normalizeImportPath(importPath: string, options: VuejsTypesOptions) {
-  if (importPath.startsWith("@")) return importPath;
+  if (
+    importPath.startsWith("@") &&
+    !KNOWN_FILE_EXTENSIONS.some((extension) => importPath.endsWith(extension))
+  ) {
+    return importPath;
+  }
   const outDirAbs = path.resolve(options.outdir ?? "./");
 
   const isAbsPath =
