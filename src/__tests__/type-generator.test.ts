@@ -232,14 +232,13 @@ const cssOnlyManifest = {
       declarations: [
         {
           kind: "class",
-          name: "my-badge",
-          tagName: "my-badge",
+          name: "Layout",
+          tagName: "zd-flex",
           customElement: true,
-          superclass: { name: "HTMLUnknownElement" },
           attributes: [
             {
               name: "tone",
-              type: { text: '"info" | "success"' },
+              type: { text: "row | column" },
             },
           ],
           cssProperties: [{ name: "--my-badge-color" }],
@@ -247,11 +246,42 @@ const cssOnlyManifest = {
           events: [{ name: "badge-ready", type: { text: "Event" } }],
         },
       ],
+      exports: [],
+    },
+    {
+      kind: "javascript-module",
+      path: "src/button.ts",
+      declarations: [
+        {
+          kind: "class",
+          name: "Button",
+          tagName: "x-button",
+          customElement: true,
+          members: [{ kind: "field", name: "label", type: { text: "string" } }],
+        },
+      ],
+      exports: [
+        {
+          kind: "js",
+          name: "Button",
+          declaration: { name: "Button", module: "src/button.ts" },
+        },
+      ],
     },
   ],
 } satisfies cem.Package;
 
 describe("generateVuejsTypes (Vue output)", () => {
+  it("does not mutate a manifest reused for sequential generation", () => {
+    const input = structuredClone(jsDocManifest);
+    const before = structuredClone(input);
+    const first = generateVuejsTypes(input, { fileName: undefined });
+    const second = generateVuejsTypes(input, { fileName: undefined });
+
+    expect(input).toEqual(before);
+    expect(second).toBe(first);
+  });
+
   it("emits Vue GlobalComponents augmentation and no JSX-framework modules", () => {
     const manifestPath = path.join(
       process.cwd(),
@@ -319,14 +349,15 @@ describe("generateVuejsTypes (Vue output)", () => {
   it("imports named CEM type references when useCemTypes is enabled", () => {
     const template = generateVuejsTypes(namedTypeManifest, {
       fileName: undefined,
+      outdir: "./types",
       useCemTypes: true,
     });
 
     expect(template).toContain(
-      'import type { Button, ButtonVariant } from "src/button.js";',
+      'import type { Button, ButtonVariant } from "../src/button.js";',
     );
     expect(template).toContain(
-      'import type { ButtonSize } from "src/button-types.js";',
+      'import type { ButtonSize } from "../src/button-types.js";',
     );
     expect(template).toContain('"variant"?: ButtonVariant | undefined;');
     expect(template).toContain('"size"?: ButtonSize;');
@@ -340,7 +371,7 @@ describe("generateVuejsTypes (Vue output)", () => {
 
     // The detail type is imported alongside the element (not CustomEvent which is global)
     expect(template).toMatch(
-      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "src\/button\.js";/,
+      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "\.\/src\/button\.js";/,
     );
     expect(template).not.toContain(", CustomEvent,");
 
@@ -358,6 +389,22 @@ describe("generateVuejsTypes (Vue output)", () => {
     );
   });
 
+  it("normalizes scoped file paths while preserving bare package specifiers", () => {
+    const manifest = structuredClone(typedEventManifest);
+    const modulePath = "@scope/components/button.js";
+    manifest.modules[0].path = modulePath;
+    manifest.modules[0].exports?.forEach((exportDeclaration) => {
+      exportDeclaration.declaration.module = modulePath;
+    });
+
+    const template = generateVuejsTypes(manifest, {
+      fileName: undefined,
+      outdir: "./types",
+    });
+
+    expect(template).toContain('from "../@scope/components/button.js"');
+  });
+
   it("does not import a union detail type from CustomEvent", () => {
     const template = generateVuejsTypes(typedEventManifest, {
       fileName: undefined,
@@ -366,7 +413,7 @@ describe("generateVuejsTypes (Vue output)", () => {
 
     // Union types have no single importable name; nothing with | in the import
     const importLine = template.match(
-      /import type \{ [^}]+ \} from "src\/button\.js";/,
+      /import type \{ [^}]+ \} from "\.\/src\/button\.js";/,
     );
     expect(importLine).not.toBeNull();
     expect(importLine![0]).not.toContain("|");
@@ -383,7 +430,7 @@ describe("generateVuejsTypes (Vue output)", () => {
 
     // The detail type is still imported so it resolves (not CustomEvent which is global)
     expect(template).toMatch(
-      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "src\/button\.js";/,
+      /import type \{ [^}]*Button[^}]*MyDetail[^}]*\} from "\.\/src\/button\.js";/,
     );
     expect(template).not.toContain(", CustomEvent,");
 
@@ -397,14 +444,103 @@ describe("generateVuejsTypes (Vue output)", () => {
       stronglyTypedEvents: true,
     });
 
-    expect(template).toContain("export type MyBadgeVueProps");
-    expect(template).toContain('"tone"?: "info" | "success";');
+    expect(template).toContain("export type ZdFlexVueProps");
+    expect(template).toContain('"tone"?: "row" | "column";');
     expect(template).toContain('"--my-badge-color"?: string;');
-    expect(template).toContain('export type MyBadgeVueSlots = "label";');
+    expect(template).toContain('export type ZdFlexVueSlots = "label";');
     expect(template).toContain(
-      '"my-badge": DefineCustomElement<HTMLUnknownElement, MyBadgeVueProps, MyBadgeVueEvents>;',
+      '"zd-flex": DefineCustomElement<HTMLElement, ZdFlexVueProps, ZdFlexVueEvents>;',
     );
-    expect(template).not.toContain("my-badgeVueProps");
+    expect(template).not.toContain("zd-flexVueProps");
     expect(template).not.toContain('from "src/my-badge.css"');
+    expect(template).toContain(
+      '"x-button": DefineCustomElement<Button, ButtonVueProps, ButtonVueEvents>;',
+    );
+  });
+
+  it("respects exclude for CSS-only declarations", () => {
+    const template = generateVuejsTypes(cssOnlyManifest, {
+      fileName: undefined,
+      exclude: ["Layout"],
+    });
+
+    expect(template).not.toContain('"zd-flex"');
+    expect(template).toContain('"x-button"');
+  });
+
+  it("does not import generic CustomEvent detail types", () => {
+    const manifest = {
+      ...typedEventManifest,
+      modules: typedEventManifest.modules.map((module) => ({
+        ...module,
+        declarations: module.declarations?.map((declaration) => ({
+          ...declaration,
+          events: [
+            {
+              name: "record",
+              type: { text: "CustomEvent<Record<string, never>>" },
+            },
+          ],
+        })),
+      })),
+    } satisfies cem.Package;
+    const template = generateVuejsTypes(manifest, { fileName: undefined });
+
+    expect(
+      template
+        ?.split("\n")
+        .some(
+          (line) => line.startsWith("import type") && line.includes("Record"),
+        ),
+    ).toBe(false);
+  });
+
+  it("imports shared event payload details only once across components", () => {
+    const manifest = {
+      schemaVersion: "1.0.0",
+      readme: "",
+      modules: ["first", "second"].map((name) => ({
+        kind: "javascript-module" as const,
+        path: `src/${name}.ts`,
+        declarations: [
+          {
+            kind: "class" as const,
+            name: name === "first" ? "First" : "Second",
+            tagName: `x-${name}`,
+            customElement: true,
+            events: [
+              { name: "error", type: { text: "CustomEvent<ErrorDetail>" } },
+            ],
+          },
+        ],
+        exports: [
+          {
+            kind: "js" as const,
+            name: name === "first" ? "First" : "Second",
+            declaration: {
+              name: name === "first" ? "First" : "Second",
+              module: `src/${name}.ts`,
+            },
+          },
+          {
+            kind: "js" as const,
+            name: "ErrorDetail",
+            declaration: {
+              name: "ErrorDetail",
+              module: `src/${name}.ts`,
+            },
+          },
+        ],
+      })),
+    } satisfies cem.Package;
+
+    const template = generateVuejsTypes(manifest, { fileName: undefined });
+    const imports = template
+      ?.split("\n")
+      .filter(
+        (line) =>
+          line.startsWith("import type") && line.includes("ErrorDetail"),
+      );
+    expect(imports).toHaveLength(1);
   });
 });

@@ -132,6 +132,12 @@ The Vue generator accepts a `VuejsTypesOptions` object to customize output.
 | `globalTypePath`    |                              `string` |        — | Add a global type import reference used by generated types (advanced).                                                     |
 | `defaultExport`     |                             `boolean` |  `false` | If your component classes are default exports, set this so imports are generated correctly.                                |
 
+Without `componentTypePath`, file-like component and type-reference paths from the CEM are rewritten relative to `outdir`. Bare package names and scoped package specifiers remain unchanged. A configured `componentTypePath` callback supplies the path as-is.
+
+### CSS-only custom elements
+
+A declaration is treated as CSS-only when it has no named JavaScript export, has an invalid/equal-to-tag class name, or is marked with `HTMLUnknownElement`. The generator names its types from the tag (for example, `zd-flex` becomes `ZdFlex`), uses `HTMLElement`, and types attributes from their own manifest types. Bare union values such as `row | column` are treated as string literals. These declarations do not need a component class import, and `exclude` applies normally.
+
 ### Template checking behavior
 
 | Option                       |      Type | Default | Notes                                                                                 |
